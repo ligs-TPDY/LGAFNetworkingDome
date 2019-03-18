@@ -210,9 +210,15 @@ static void AFNetworkReachabilityReleaseCallback(const void *info) {
     if (!self.networkReachability) {
         return;
     }
-
+    
+    //这里将self使用__weakSelf修饰，避免循环引用，导致内存泄漏
+    //Apple 官方的建议是，传进 Block 之前，把 ‘self’ 转换成 weak automatic 的变量，这样在 Block 中就不会出现对 self 的强引用。
+    //如果在 Block 执行完成之前，self 被释放了，weakSelf 也会变为 nil。
     __weak __typeof(self)weakSelf = self;
     AFNetworkReachabilityStatusCallback callback = ^(AFNetworkReachabilityStatus status) {
+        //这里，在block内部，用将weakSelf使用__strong来修饰，作用时，避免当前block被调用时，self已经被释放。
+        //__strong可以暂缓self对象的释放。如果该block执行时，self已经达到了释放的标准，但存在被__strong修饰的情况，系统则会暂缓对该对象的回收
+        //直到__strong的作用域被执行完毕，该对象才会被回收，
         __strong __typeof(weakSelf)strongSelf = weakSelf;
 
         strongSelf.networkReachabilityStatus = status;
